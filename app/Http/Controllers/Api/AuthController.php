@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Dotenv\Validator;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -29,12 +30,17 @@ class AuthController extends Controller
         $user = new User([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => bcrypt($request->password)
+            'password' => bcrypt($request->password),
+            'role_id' => 2,
         ]);
+
         $user->save();
 
-        return response()->json(['message' => 'Регистрация прошла успешна']);
+        $token = Str::random(60);
+        $user->api_token = $token;
+        $user->save();
 
+        return response()->json(['message' => 'Регистрация прошла успешно', 'token' => $token], 201);
     }
     public function login(Request $request)
     {

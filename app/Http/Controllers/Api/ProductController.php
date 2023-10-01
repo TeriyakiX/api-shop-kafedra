@@ -3,48 +3,86 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index()
     {
-        return Product::all();
+        return ProductResource::collection(Product::all());
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function createProducts(Request $request)
+
     {
-        //
+        $this->validate($request, [
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric',
+        ]);
+
+        $product = new Product;
+        $product->name = $request->input('name');
+        $product->description = $request->input('description');
+        $product->price = $request->input('price');
+        $product->save();
+
+        $productResource = new ProductResource($product);
+
+        return response()->json(['message' => 'Продукт успешно добавлен', 'product' => $productResource]);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+
+
+
+    public function updateProducts(Request $request)
     {
-        //
+        // Валидация данных
+        $this->validate($request, [
+            'id' => 'required|exists:products,id',
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric',
+        ]);
+
+        $product = Product::find($request->input('id'));
+
+        if (!$product) {
+            return response()->json(['message' => 'Продукт не найден.'], 404);
+        }
+
+        $product->update([
+            'name' => $request->input('name'),
+            'description' => $request->input('description'),
+            'price' => $request->input('price'),
+        ]);
+
+        $productResource = new ProductResource($product);
+
+        return response()->json(['message' => 'Продукт успешно обновлен', 'product' => $productResource]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function destroyProducts(Request $request)
     {
-        //
+
+        $productIds = $request->input('product_ids');
+
+        if ($productIds !== null) {
+            try {
+                Product::whereIn('id', $productIds)->delete();
+
+                return response()->json(['message' => 'Продукты успешно удалены']);
+            } catch (\Exception $e) {
+
+                return response()->json(['message' => 'Произошла ошибка при удалении продуктов'], 500);
+            }
+        } else {
+
+            return response()->json(['message' => 'Не указаны ID продуктов для удаления'], 400);
+        }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
 }
